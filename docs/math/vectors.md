@@ -2,7 +2,7 @@
 
 ## Vectors
 
-**meSP2** implements vectors as points in eucledian linear space of multidimensional set of elements. Non-eucledian and non-linear spaces are not considered there.
+**meSP2** implements vectors as points in eucledian linear space of multidimensional set of elements. Non-eucledian and non-linear spaces are not considered here.
 
 Although linear algebra _does not_ limit vector definition to a set of _real numbers in cartesian coordinate system_ $\mathbb{R}^d$ ( and library is able to perform linear operations upon vectors in, say, functional space ) and **meSP2** allows usage of different spaces, we will use vectors as points in such system, as used in most games.
 
@@ -14,10 +14,10 @@ Vector is declared as pair of dimension count and element type:
 
 ```cpp
 // Creating vector of floats, default for quake 3
-const mesp2::vector<3, float> = {1., 2., 3.};
+const mesp2::vector<3, float> a = {1., 2., 3.};
 
 // Creating vector of doubles
-const mesp2::vector<4, double> = {1., 2., 3., 4.};
+const mesp2::vector<4, double> b = {1., 2., 3., 4.};
 
 // Float is default type for vectors
 mesp2::vector<2> v;
@@ -74,6 +74,25 @@ a *= 2.0f; // a = {2.0f, 4.0f, 6.0f}
 
 // Scalar can be added to a vector
 a += 1.0f; // a = {3.0, 5.0f, 6.0f}
+```
+
+#### Matrix math
+
+When talking about vector with matrix multiplication, vector
+is treated as row- or column-matrix ( 1xN / Nx1 ):
+
+```cpp
+mesp2::vector<2> vec = {9, 4};
+mesp2::matrix<2> mat = {
+    7, -2,
+    5, 3
+};
+
+// vec as row
+std::cout << vec * mat << "\n"; // {55, 57}
+
+// vec as column
+std::cout << mat * vec << "\n"; // {83, -6}
 ```
 
 ### Operations

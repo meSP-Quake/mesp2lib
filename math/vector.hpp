@@ -76,7 +76,9 @@ struct vector : public coordinates_t<Dimensions, T> {
  public:
     using value_type = T;
 
-    [[gnu::nothrow]] vector() { std::fill(this->_c, this->_c + Dimensions, 0); }
+    [[gnu::nothrow]] vector(T initial_value = T()) : vector() {
+        std::fill(this->_c, this->_c + Dimensions, initial_value);
+    }
 
     [[gnu::nothrow]] vector(vector<Dimensions, T> &&other) : vector() {
         std::copy(other._c, other._c + Dimensions, this->_c);
@@ -91,10 +93,6 @@ struct vector : public coordinates_t<Dimensions, T> {
         for (size_t i = 0; i < Dimensions; ++i) {
             this->_c[i] = other._c[i];
         }
-    }
-
-    [[gnu::nothrow]] vector(T initial_value) : vector() {
-        std::fill(this->_c, this->_c + Dimensions, initial_value);
     }
 
     [[gnu::nothrow]] vector(std::initializer_list<T> values) : vector() {
@@ -291,6 +289,25 @@ template <size_t Dimensions, typename T>
 template <size_t Dimensions, typename T>
 [[gnu::nothrow]] inline T normalized(const vector<Dimensions, T> &vector) {
     return vector / length(vector);
+}
+
+template <size_t Dimensions, typename T>
+[[gnu::nothrow]] vector<Dimensions, T>
+operator*(const matrix<Dimensions, Dimensions, T> &matrix,
+          const vector<Dimensions, T> &vector) {
+    mesp2::vector<Dimensions, T> result;
+
+    for (size_t i = 0; i < Dimensions; i++) {
+        T sum = T(0);
+
+        for (size_t dimension = 0; dimension < Dimensions; dimension++) {
+            sum += vector[dimension] * matrix[dimension][i];
+        }
+
+        result[i] = sum;
+    }
+
+    return result;
 }
 
 template <size_t Dimensions, typename T>
