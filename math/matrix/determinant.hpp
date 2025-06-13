@@ -46,9 +46,19 @@
  *
  */
 
+#include <concepts>
 #include <math/matrix/matrix.hpp>
 
 namespace mesp2 {
+
+// ************************************************************************
+// *                                                                      *
+// *                  DETERMINANT FOR NON-FLOAT MATRICES                  *
+// *                                                                      *
+// ************************************************************************
+
+// Used for matrices with types that do not support rational numbers ( usually
+// integers ). As slow as O(n!).
 
 template <size_t n, typename T>
 constexpr T getMatrixDeterminant(const matrix<n, n, T> &matrix) {
@@ -94,6 +104,16 @@ constexpr T getMatrixDeterminant(const matrix<n, n, T> &matrix) {
 }
 
 template <typename T>
+constexpr T getMatrixDeterminant(const matrix<3, 3, T> &matrix) {
+    return matrix[0][0] * matrix[1][1] * matrix[2][2] -
+           matrix[0][0] * matrix[1][2] * matrix[2][1] -
+           matrix[0][1] * matrix[1][0] * matrix[2][2] +
+           matrix[0][1] * matrix[1][2] * matrix[2][0] +
+           matrix[0][2] * matrix[1][0] * matrix[2][1] -
+           matrix[0][2] * matrix[1][1] * matrix[2][0];
+}
+
+template <typename T>
 constexpr T getMatrixDeterminant(const matrix<2, 2, T> &matrix) {
     return matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0];
 }
@@ -101,6 +121,72 @@ constexpr T getMatrixDeterminant(const matrix<2, 2, T> &matrix) {
 template <typename T>
 constexpr T getMatrixDeterminant(const matrix<1, 1, T> &matrix) {
     return matrix[0][0];
+}
+
+// ************************************************************************
+// *                                                                      *
+// *                    DETERMINANT FOR FLOAT MATRICES                    *
+// *                                                                      *
+// ************************************************************************
+
+// Used for matrices with types that support rational numbers:
+// +----------------------------------------------------------------------+
+// |                           1 / (1 / n) == n                           |
+// +----------------------------------------------------------------------+
+// With that being true, it's possible to speed up determinant algorithm
+// up to O(n^3) with LUP decomposition.
+
+template <size_t n, std::floating_point T>
+constexpr T getMatrixDeterminant(const mesp2::matrix<n, n, T> &mat) {
+    T det = T(1);
+
+    // To get rid of ambigious call with function above, we explicitly copy
+    // the matrix...
+    mesp2::matrix<n, n, T> matrix = mat;
+
+    for (size_t i = 0; i < n; ++i) {
+        T pivotValue = T(0);
+        size_t pivot = i;
+
+        for (size_t row = i + 1; row < n; ++row) {
+            if (std::abs(matrix[row][i]) > std::abs(matrix[pivot][i])) {
+                pivot = row;
+            }
+        }
+
+        if (matrix[pivot][i] == T(0)) {
+            continue;
+        }
+
+        if (pivot != i) {
+            // Swapping rows changes matrix determinant sign
+            det = -det;
+
+            for (size_t j = 0; j < n; ++j) {
+                std::swap(matrix[i][j], matrix[pivot][j]);
+            }
+        }
+
+        for (size_t j = i + 1; j < n; ++j) {
+            matrix[j][i] /= matrix[i][i];
+
+            for (size_t k = i + 1; k < n; ++k) {
+                matrix[j][k] -= matrix[j][i] * matrix[i][k];
+            }
+        }
+    }
+
+    // matrix = L + U - E
+    // One of the matrices L or U has only ones on the main diagonal, which are
+    // subtracted by the identity matrix. So, as det(A) = det(L) * det(U) and
+    // one of the determinants det(L) or det(U) is guaranteed to be equal 1,
+    // det(A) = det(C).
+
+    for (size_t i = 0; i < n; ++i) {
+        det *= matrix[i][i];
+    }
+
+    return det;
 }
 
 template <size_t w, size_t h, typename T>

@@ -76,7 +76,11 @@ struct vector : public coordinates_t<Dimensions, T> {
  public:
     using value_type = T;
 
-    [[gnu::nothrow]] vector(T initial_value = T()) : vector() {
+    [[gnu::nothrow]] vector() {
+        std::fill(this->_c, this->_c + Dimensions, T());
+    }
+
+    [[gnu::nothrow]] vector(T initial_value) : vector() {
         std::fill(this->_c, this->_c + Dimensions, initial_value);
     }
 
@@ -287,7 +291,8 @@ template <size_t Dimensions, typename T>
 }
 
 template <size_t Dimensions, typename T>
-[[gnu::nothrow]] inline T normalized(const vector<Dimensions, T> &vector) {
+[[gnu::nothrow]] inline vector<Dimensions, T>
+normalized(const vector<Dimensions, T> &vector) {
     return vector / length(vector);
 }
 

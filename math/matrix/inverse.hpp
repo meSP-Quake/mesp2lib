@@ -65,10 +65,6 @@ constexpr T calculateMatrixAlgebraicComplement(const matrix<n, n, T> &matrix,
 
     copy[row][column] = T(1);
 
-    // You won't speed function asymptotically if you inline this function
-    // and optimize it in such a way, that matrix copies only once and
-    // restores each time it's used. You'll wave O(n^2) operations, but
-    // matrix.getDeterminant() function is O(n^3).
     return copy.getDeterminant();
 }
 
