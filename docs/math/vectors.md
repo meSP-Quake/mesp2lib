@@ -1,85 +1,162 @@
 # meSP2::Docs : Math submodule
 
-## Vectors
+## Brief
 
 **meSP2** implements vectors as points in eucledian linear space of multidimensional set of elements. Non-eucledian and non-linear spaces are not considered here.
 
-Although linear algebra _does not_ limit vector definition to a set of _real numbers in cartesian coordinate system_ $\mathbb{R}^d$ ( and library is able to perform linear operations upon vectors in, say, functional space ) and **meSP2** allows usage of different spaces, we will use vectors as points in such system, as used in most games.
+Although linear algebra _does not_ limit vector definition to a set of _real numbers in cartesian coordinate system_ $\mathbb{R}^d$ and **meSP2** allows usage of different spaces, we will use vectors as points in such system, as used in most games.
 
-**Note**: _This implementation is used for convenient vector usage with quake's format, rather writing yet another linear algebra library. When searching, I haven't seen good yet compact library for doing geometrical things ( including non-traditional linear spaces, e.g. color spaces )._
+**Note**: _This implementation is used for convenient vector usage with quake's format, rather writing yet another linear algebra library. When searching, I haven't found good yet compact library for doing geometrical things ( including non-traditional linear spaces, e.g. color spaces )._
 
-### Brief
+## Vectors
 
-Vector is declared as pair of dimension count and element type:
+### Quake's format
 
-```cpp
-// Creating vector of floats, default for quake 3
-const mesp2::vector<3, float> a = {1., 2., 3.};
+For vectors, Quake uses special types:
 
-// Creating vector of doubles
-const mesp2::vector<4, double> b = {1., 2., 3., 4.};
-
-// Float is default type for vectors
-mesp2::vector<2> v;
-
-v::value_type == float; // true
+```c
+typedef float vec_t;
+typedef vec_t vec2_t[2];
+typedef vec_t vec3_t[3];
+typedef vec_t vec4_t[4];
+typedef vec_t vec5_t[5];
 ```
 
-First 4 coordinates can be accessed through their common names:
+As you can see, special type `vec_t` abstracts vectors from their types, allowing you to change type when needed everywhere.
 
-```cpp
-// For 4-dimensional vector
-mesp2::vector<4> a;
+When in most cases vectors up to 5 dimensions are enough, this scheme of typing sometimes causes repeatable code:
 
-a.x = 0.f;
-a.z += a.x + a.y;
-a.w *= 2.0f;
-
-// For 2-dimensional vector
-mesp2::vector<2> b;
-
-b.x = b.y = 1.0f;
-
-b.z = 0.0f; // CE: field 'z' is undefined for 2-dimensional vectors
+```c
+vec_t dot2(vec2_t left, vec2_t right);
+vec_t dot3(vec3_t left, vec3_t right);
+vec_t dot4(vec4_t left, vec4_t right);
+// so on and so forth...
 ```
 
-### Arithmetic
+Also, basic arithmetic operations definitely don't look like a really simple code:
 
-Basic arithmetic could be performed through known operators you may know from `GLSL`:
+```c
+// This is a bit simplified version of G_BounceMissile for demonstration purposes
+void G_BounceMissile( gentity_t *ent, trace_t *trace ) {
+    vec3_t  velocity; // assume initialized
 
-```cpp
-mesp2::vector<3> a, b, c; // assume they're initialized
+    // reflect the velocity on the trace plane
+    float dot = DotProduct( velocity, trace->plane.normal );
+    VectorMA( velocity, -2*dot, trace->plane.normal, ent->s.pos.trDelta );
 
-// Adding and subtracting
-c = b - a;
-a += b;
+    if ( ent->s.eFlags & EF_BOUNCE_HALF ) {
+        VectorScale( ent->s.pos.trDelta, 0.65, ent->s.pos.trDelta );
+        // check for stop
+        if ( trace->plane.normal[2] > 0.2 && VectorLength( ent->s.pos.trDelta ) < 40 ) {
+            return;
+        }
+    }
 
-// Initializing for next exmaple to explain it later
-a = {1.5f, 3.0f, 4.0f};
-b = {2.0f, 2.0f, 1.0f};
-
-// This is component-by-component multiplication and *NOT*
-// a dot product. For given above vectors resuling vector
-// c will be: {3.0f, 6.0f, 4.0f}
-c = a * b;
+    VectorAdd( ent->r.currentOrigin, trace->plane.normal, ent->r.currentOrigin);
+    VectorCopy( ent->r.currentOrigin, ent->s.pos.trBase );
+}
 ```
 
-Scalar operations with vectors are also defined:
+From a bit of perspective, it looks somewhat readable, but let's take a look at _mesp2's_ version:
 
 ```cpp
-mesp2::vector<3> a = {1.0f, 2.0f, 3.0f};
+// This is a bit simplified version of G_BounceMissile for demonstration purposes
+void G_BounceMissile( gentity_t *ent, trace_t *trace ) {
+    mesp2::vector<3> velocity; // assume initialized
 
-// Vector can be multiplied by scalar
-a *= 2.0f; // a = {2.0f, 4.0f, 6.0f}
+    // reflect the velocity on the trace plane
+    float dot = mesp2::dot( velocity, trace->plane.normal );
 
-// Scalar can be added to a vector
-a += 1.0f; // a = {3.0, 5.0f, 6.0f}
+    ent->s.pos.trDelta = velocity - trace->plane.normal * 2 * dot;
+
+    if ( ent->s.eFlags & EF_BOUNCE_HALF ) {
+        ent->s.pos.trDelta *= 0.65;
+        // check for stop
+        if ( trace->plane.normal.y > 0.2 && mesp2::length( ent->s.pos.trDelta ) < 40 ) {
+            return;
+        }
+    }
+
+    ent->r.currentOrigin += trace->plane.normal;
+    ent->s.pos.trBase = ent->r.currentOrigin;
+}
 ```
 
-#### Matrix math
+Now it's more readable.
 
-When talking about vector with matrix multiplication, vector
-is treated as row- or column-matrix ( 1xN / Nx1 ):
+With assigning, you know where result is stored:
+
+```cpp
+// Before
+VectorMA( velocity, -2*dot, trace->plane.normal, ent->s.pos.trDelta );
+
+// After
+ent->s.pos.trDelta = velocity - trace->plane.normal * 2 * dot;
+```
+
+With overloaded operators, vectors are manipulated the same way numbers do. With named vectors components, such as **x, y, z, w** it's cleaner and easier to perceive code, and other great stuff thanks to **C++**, which you might have seen somewhere already in other geometric libraries.
+
+### meSP2's format
+
+As you can see from examples in previous sections, `mesp2::vector` is a template class with support of any dimensions and possibility to specify type.
+
+Basic declaration:
+
+```cpp
+// Float is type by default
+mesp2::vector<3, float> vec = {1, 2, 3};
+
+// 24-dimensional vector of int64_t, initialized with ones
+mesp2::vector<24, int64_t> vec(1);
+```
+
+The type of a vector is obtained with `::value_type`:
+
+```cpp
+mesp2::vector<3, float> vec;
+
+vec::value_type == float; // true
+```
+
+Arithmetic for vectors came from `GLSL`. Most of behaviour from there works as well:
+
+```cpp
+vec + 3; // adding scalar to all vector components
+a * b; // component-wise multiplication: {Ax * Bx, Ay * By, ...}
+```
+
+as well as common operations, like addition, subtraction, multiplication and other you saw earlier.
+
+When dealing with higher dimensions, vectors have array-like interface for indexing it's components:
+
+```cpp
+mesp2::vector<100, bool> a;
+
+// Indexing starts with zero
+a[0] = true;
+a[5] = false;
+a[99] = true;
+```
+
+### Matrix math
+
+Vectors are part of matrix math. Strictly speaking, vectors are matrices with one unit dimension.
+
+For given vector $a$, it could be:
+
+- Row-vector:
+
+  $`\overline a = \begin{vmatrix}\begin{array}{ccc}1&2&3\end{array}\end{vmatrix}`$
+
+- Column-vector:
+
+  $`\overline a = \begin{vmatrix}\begin{array}{c}1\\2\\3\end{array}\end{vmatrix}`$
+
+As you may know ( or may not know, in that case I'd recommend you to give a read about linear algebra basics first ), matrices are not commutative by multiplication:
+
+$$AB \ne BA$$
+
+So, depending on your vector placement, result would be different:
 
 ```cpp
 mesp2::vector<2> vec = {9, 4};
@@ -94,6 +171,8 @@ std::cout << vec * mat << "\n"; // {55, 57}
 // vec as column
 std::cout << mat * vec << "\n"; // {83, -6}
 ```
+
+In both cases _meSP2_ cares with vector representation for you, but be careful, when doing math with matrices.
 
 ### Operations
 
