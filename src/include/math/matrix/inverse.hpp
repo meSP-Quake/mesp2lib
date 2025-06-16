@@ -68,29 +68,46 @@ constexpr T calculateMatrixAlgebraicComplement(const matrix<n, n, T> &matrix,
     return copy.getDeterminant();
 }
 
-template <size_t w, size_t h, typename T>
-matrix<w, w, T> matrix<w, h, T>::makeInverse() const {
+template <size_t h, size_t w, typename T>
+matrix<w, w, T> matrix<h, w, T>::makeInverse() const {
     static_assert(w == h, "Matrix must be square to make inverse copy of it.");
 
-    matrix<w, w, T> out = {};
+    auto [matrix, permutation, _] = LUPDecompose(*this);
 
-    // Assuming determinant is not zero
-    const T det = this->getDeterminant();
+    mesp2::matrix<w, w, T> &L = matrix;
+    mesp2::matrix<w, w, T> U = mesp2::matrix<w, w, T>::identity();
 
-    for (size_t row = 0; row < w; ++row) {
-        for (size_t column = 0; column < w; ++column) {
-            // Values are transposed automatically, so swapped row and column in
-            // a function call are not a mistake.
-            out[row][column] =
-                calculateMatrixAlgebraicComplement(*this, column, row);
+    for (size_t i = 0; i < w; ++i) {
+        for (size_t j = i; j < w; ++j) {
+            std::swap(matrix[i][j], U[i][j]);
         }
     }
 
-    // You could speed it up by calculating inverse determinant and doing
-    // multiplication instead of division, which is faster in floats, but
-    // keep in mind, that this could produce incorrect results with integer
-    // matrices ( e.g. mesp2::matrix<n, n, int64_t> ).
-    return out / det;
+    for (size_t i = 0; i < w; ++i) {
+        U[i][i] = T(1) / U[i][i];
+
+        for (size_t j = i + 1; j < w; ++j) {
+            T newValue = T(0);
+
+            for (size_t k = 0; k < j; ++k) {
+                newValue -= U[i][k] * U[k][j];
+            }
+
+            U[i][j] = newValue / U[j][j];
+        }
+
+        for (size_t j = 0; j < i; ++j) {
+            T newValue = T(0);
+
+            for (size_t k = 0; k < i; ++k) {
+                newValue -= L[k][j] * L[i][k];
+            }
+
+            L[i][j] = newValue / L[i][i];
+        }
+    }
+
+    return U * L * permutation;
 }
 
 }; // namespace mesp2

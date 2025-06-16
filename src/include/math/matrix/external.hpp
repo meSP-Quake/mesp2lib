@@ -83,7 +83,8 @@ template <size_t Dim, typename T>
 matrix<Dim, Dim, T> rotationMatrixPlane(T angle, size_t dim1, size_t dim2) {
     const T s = std::sin(angle), c = std::cos(angle);
 
-    matrix<Dim, Dim, T> result = identity<T, Dim>();
+    matrix<Dim, Dim, T> result =
+        matrix<Dim, Dim, T>::template identity<T, Dim>();
 
     result[dim1][dim1] = c;
     result[dim1][dim2] = -s;

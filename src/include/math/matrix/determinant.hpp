@@ -47,7 +47,9 @@
  */
 
 #include <concepts>
+#include <math/matrix/lup.hpp>
 #include <math/matrix/matrix.hpp>
+#include <sys/types.h>
 
 namespace mesp2 {
 
@@ -140,41 +142,7 @@ template <size_t n, std::floating_point T>
 constexpr T getMatrixDeterminant(const mesp2::matrix<n, n, T> &mat) {
     T det = T(1);
 
-    // To get rid of ambigious call with function above, we explicitly copy
-    // the matrix...
-    mesp2::matrix<n, n, T> matrix = mat;
-
-    for (size_t i = 0; i < n; ++i) {
-        T pivotValue = T(0);
-        size_t pivot = i;
-
-        for (size_t row = i + 1; row < n; ++row) {
-            if (std::abs(matrix[row][i]) > std::abs(matrix[pivot][i])) {
-                pivot = row;
-            }
-        }
-
-        if (matrix[pivot][i] == T(0)) {
-            continue;
-        }
-
-        if (pivot != i) {
-            // Swapping rows changes matrix determinant sign
-            det = -det;
-
-            for (size_t j = 0; j < n; ++j) {
-                std::swap(matrix[i][j], matrix[pivot][j]);
-            }
-        }
-
-        for (size_t j = i + 1; j < n; ++j) {
-            matrix[j][i] /= matrix[i][i];
-
-            for (size_t k = i + 1; k < n; ++k) {
-                matrix[j][k] -= matrix[j][i] * matrix[i][k];
-            }
-        }
-    }
+    auto [matrix, permutation, sign] = LUPDecompose(mat);
 
     // matrix = L + U - E
     // One of the matrices L or U has only ones on the main diagonal, which are
@@ -186,7 +154,7 @@ constexpr T getMatrixDeterminant(const mesp2::matrix<n, n, T> &mat) {
         det *= matrix[i][i];
     }
 
-    return det;
+    return sign ? -det : det;
 }
 
 template <size_t w, size_t h, typename T>

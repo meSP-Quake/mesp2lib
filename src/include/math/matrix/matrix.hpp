@@ -26,7 +26,7 @@
 
 namespace mesp2 {
 
-template <size_t w, size_t h = w, typename T = float> class matrix {
+template <size_t h, size_t w = h, typename T = float> class matrix {
  public:
     using value_type = T;
 
@@ -81,7 +81,7 @@ template <size_t w, size_t h = w, typename T = float> class matrix {
      *
      * @return matrix<w, w, T>
      */
-    matrix<h, w, T> makeTransposed() const;
+    matrix<w, h, T> makeTransposed() const;
 
     // *********************************************************************
     // *                                                                   *
@@ -154,8 +154,8 @@ template <size_t w, size_t h = w, typename T = float> class matrix {
     T _elements[h * w];
 };
 
-template <size_t w, size_t h, typename T>
-constexpr matrix<w, w, T> matrix<w, h, T>::identity() {
+template <size_t h, size_t w, typename T>
+constexpr matrix<w, w, T> matrix<h, w, T>::identity() {
     static_assert(w == h, "Identity matrix must be square.");
 
     matrix<w, w, T> out(T(0));
@@ -167,12 +167,12 @@ constexpr matrix<w, w, T> matrix<w, h, T>::identity() {
     return out;
 }
 
-template <size_t w, size_t h, typename T>
-matrix<h, w, T> matrix<w, h, T>::makeTransposed() const {
-    matrix<h, w, T> out = {};
+template <size_t h, size_t w, typename T>
+matrix<w, h, T> matrix<h, w, T>::makeTransposed() const {
+    matrix<w, h, T> out = {};
 
-    for (size_t i = 0; i < w; i++) {
-        for (size_t j = 0; j < h; ++j) {
+    for (size_t i = 0; i < h; i++) {
+        for (size_t j = 0; j < w; ++j) {
             out[j][i] = (*this)[i][j];
         }
     }
@@ -186,8 +186,8 @@ matrix<h, w, T> matrix<w, h, T>::makeTransposed() const {
 // *                                                                       *
 // *************************************************************************
 
-template <size_t w, size_t h, typename T>
-std::ostream &operator<<(std::ostream &os, const matrix<w, h, T> &matrix) {
+template <size_t h, size_t w, typename T>
+std::ostream &operator<<(std::ostream &os, const matrix<h, w, T> &matrix) {
     os << "<" << h << "x" << w << " matrix { ";
 
     for (size_t i = 0; i + 1 < w * h; i++) {
@@ -199,29 +199,29 @@ std::ostream &operator<<(std::ostream &os, const matrix<w, h, T> &matrix) {
     return os << " }>";
 }
 
-template <typename T, size_t w, size_t h>
-matrix<w, h, T> operator+(matrix<w, h, T> left, const matrix<w, h, T> &right) {
+template <typename T, size_t h, size_t w>
+matrix<h, w, T> operator+(matrix<h, w, T> left, const matrix<h, w, T> &right) {
     left += right;
 
     return left;
 }
 
-template <typename T, size_t w, size_t h>
-matrix<w, h, T> operator-(matrix<w, h, T> left, const matrix<w, h, T> &right) {
+template <typename T, size_t h, size_t w>
+matrix<h, w, T> operator-(matrix<h, w, T> left, const matrix<h, w, T> &right) {
     left -= right;
 
     return left;
 }
 
-template <typename T, typename U, size_t w, size_t h>
-matrix<w, h, T> operator*(matrix<w, h, T> left, const U &right) {
+template <typename T, typename U, size_t h, size_t w>
+matrix<h, w, T> operator*(matrix<h, w, T> left, const U &right) {
     left *= right;
 
     return left;
 }
 
-template <typename T, typename U, size_t w, size_t h>
-matrix<w, h, T> operator/(matrix<w, h, T> left, const U &right) {
+template <typename T, typename U, size_t h, size_t w>
+matrix<h, w, T> operator/(matrix<h, w, T> left, const U &right) {
     left /= right;
 
     return left;
@@ -233,8 +233,8 @@ matrix<w, h, T> operator/(matrix<w, h, T> left, const U &right) {
  * memory-efficient ( see matrix `binpow` implementation for usage example )
  */
 template <typename T, size_t w1, size_t h1, size_t w2>
-matrix<w2, h1, T> operator*(const matrix<w1, h1, T> &left,
-                            const matrix<w2, w1, T> &right) {
+matrix<w2, h1, T> operator*(const matrix<h1, w1, T> &left,
+                            const matrix<w1, w2, T> &right) {
     matrix<w2, h1, T> out(T(0));
 
     for (size_t y = 0; y < h1; y++) {
@@ -250,8 +250,8 @@ matrix<w2, h1, T> operator*(const matrix<w1, h1, T> &left,
     return out;
 }
 
-template <typename T, size_t w, size_t h>
-bool operator==(const matrix<w, h, T> &left, const matrix<w, h, T> &right) {
+template <typename T, size_t h, size_t w>
+bool operator==(const matrix<h, w, T> &left, const matrix<h, w, T> &right) {
     for (size_t y = 0; y < h; y++) {
         for (size_t x = 0; x < w; x++) {
             if (left[y][x] != right[y][x])

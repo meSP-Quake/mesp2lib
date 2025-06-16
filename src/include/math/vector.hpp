@@ -155,6 +155,20 @@ struct vector : public coordinates_t<Dimensions, T> {
         std::copy(other._c, other._c + Dimensions, this->_c);
     }
 
+    [[gnu::nothrow]] bool operator==(const vector<Dimensions, T> &other) {
+        for (size_t i = 0; i < Dimensions; ++i) {
+            if (this->_c[i] != other._c[i]) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    [[gnu::nothrow]] bool operator!=(const vector<Dimensions, T> &other) {
+        return !((*this) == other);
+    }
+
     T &operator[](size_t index) { return this->_c[index]; }
     const T &operator[](size_t index) const { return this->_c[index]; }
 };
